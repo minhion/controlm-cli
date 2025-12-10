@@ -80,7 +80,7 @@ ENV HOME=/opt/ctm
 # 3) Download & install the CTM CLI into a Python venv
 # ──────────────────────────────────────────────────────────────
 RUN wget -q \
-  https://bmc-prod-saas-agent-application-artifacts.s3.us-west-2.amazonaws.com/9.0.22.006/extracted/4766/root/apps/DEV/9.0.22.000/install_ctm_cli.py \
+  https://bmc-prod-saas-agent-application-artifacts.s3.us-west-2.amazonaws.com/9.0.22.018/extracted/5249/root/apps/DEV/9.0.22.000/install_ctm_cli.py \
   && chmod +x install_ctm_cli.py \
   && python3 -m venv venv \
   && ./venv/bin/pip install --upgrade pip setuptools wheel \
