@@ -5,10 +5,10 @@
 >  
 > Created and shared for the community by [Minh Nguyen](https://www.linkedin.com/in/mnguyen92/).
 
-# Control-M CLI + Agent Provisioning Support (Ubuntu 22.04 + JDK 21)
+# Control-M CLI + Agent Provisioning Support (Ubuntu 24.04 + JDK 25)
 
 This Docker image provides a ready-to-use environment for **Control-M CLI** with **Control-M Agent** provisioning support.  
-It’s based on **Ubuntu 22.04** and includes **Temurin JDK 21** for provisioning Control-M agent and plugins.
+It’s based on **Ubuntu 24.04** and includes **Temurin JDK 25** for provisioning Control-M agent and plugins.
 
 [Docker Repo](https://hub.docker.com/r/minhion/controlm-cli)
 
@@ -17,9 +17,9 @@ To provision a Control-M agent, follow the following guide after running the con
 ---
 
 ## 🚀 Features
-- **Ubuntu 22.04 LTS** base image
-- **Temurin JDK 21** included 
-- **Python:** 3.x (installed via system package; venv-ready)  
+- **Ubuntu 24.04 LTS** base image
+- **Temurin JDK 25 LTS** included
+- **Python:** 3.x (installed via system package; venv-ready)
 - **Control-M CLI** pre-installed inside a Python virtual environment
 - Ready for **Control-M Agent** provisioning
 - Ideal for automation in CI/CD pipelines
@@ -44,11 +44,12 @@ docker run \
   -e CTM_ENDPOINT="https://<your-controlm-host>/automation-api" \
   -e CTM_API_TOKEN="<your-api-token>" \
   -e CTM_ENV_NAME="<your-environment-name>" \
-  -it minhion/controlm-cli:22
+  -it minhion/controlm-cli:24
 ```
 
 ### Tags
-22 → Ubuntu 22.04 + JDK 21 + Control-M CLI
+24 → Ubuntu 24.04 + JDK 25 LTS + Control-M CLI
+22 → Ubuntu 22.04 + JDK 21 + Control-M CLI (legacy)
 
 ### 📄 License
 BMC Control-M CLI and Agent are subject to BMC Software license terms.

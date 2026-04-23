@@ -2,9 +2,8 @@
 
 # ──────────────────────────────────────────────────────────────
 # Base image & metadata
-# 24.04 not supported by BMC yet!!
 # ──────────────────────────────────────────────────────────────
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # ──────────────────────────────────────────────────────────────
 # Required min specs for Control-M Agent
@@ -15,7 +14,7 @@ LABEL \
   spec.cpu2017.integer.rate="10"
 
 ENV DEBIAN_FRONTEND=noninteractive \
-  JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64 \
+  JAVA_HOME=/usr/lib/jvm/temurin-25-jdk-amd64 \
   PYTHONUNBUFFERED=1
 
 # Use bash with pipefail for all RUN commands
@@ -23,12 +22,12 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 # ──────────────────────────────────────────────────────────────
 # 1) Install OS packages
-#    • psmisc (pstree)  
-#    • pkg-config  
-#    • libglib2.0-0 + libglib2.0-dev  
-#    • tar, gzip, bzip2, zip, unzip  
-#    • python3-venv, pip  
-#    • Temurin JDK 21 @ https://adoptium.net/temurin/releases
+#    • psmisc (pstree)
+#    • pkg-config
+#    • libglib2.0-0 + libglib2.0-dev
+#    • tar, gzip, bzip2, zip, unzip
+#    • python3-venv, pip
+#    • Temurin JDK 25 @ https://adoptium.net/temurin/releases
 # ──────────────────────────────────────────────────────────────
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -40,7 +39,7 @@ RUN apt-get update \
   net-tools \
   libsigsegv2 \
   libmpfr6 \
-  libtinfo5 \
+  libtinfo6 \
   cups \
   jq \
   pkg-config \
@@ -53,13 +52,15 @@ RUN apt-get update \
   python3 \
   python3-pip \
   python3-venv \
-  && wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
-  | apt-key add - \
-  && echo "deb https://packages.adoptium.net/artifactory/deb \
+  && mkdir -p /etc/apt/keyrings \
+  && wget -qO /etc/apt/keyrings/adoptium.asc \
+    https://packages.adoptium.net/artifactory/api/gpg/key/public \
+  && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] \
+  https://packages.adoptium.net/artifactory/deb \
   $(awk -F= '/^VERSION_CODENAME/{print $2}' /etc/os-release) main" \
   > /etc/apt/sources.list.d/adoptium.list \
   && apt-get update \
-  && apt-get install -y --no-install-recommends temurin-21-jdk \
+  && apt-get install -y --no-install-recommends temurin-25-jdk \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
