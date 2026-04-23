@@ -67,11 +67,13 @@ RUN apt-get update \
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # ──────────────────────────────────────────────────────────────
-# 2) Create user 'controlm' & add no sudoers
+# 2) Create user 'controlm' and supporting directories
 # ──────────────────────────────────────────────────────────────
 RUN groupadd -r controlm \
-  && useradd -r -g controlm -d /opt/ctm -s /bin/bash -m controlm && \
-  echo 'controlm ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+  && useradd -r -g controlm -d /opt/ctm -s /bin/bash -m controlm \
+  && echo 'controlm ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+  && mkdir -p /home/controlm/se_storage \
+  && chown -R controlm:controlm /home/controlm
 
 USER controlm
 WORKDIR /opt/ctm
@@ -91,7 +93,33 @@ RUN wget -q \
 ENV PATH="/opt/ctm/venv/bin:$PATH"
 
 # ──────────────────────────────────────────────────────────────
-# 4) Verify installations
+# 4) Pre-create persistent agent directories
+#    Ensures named volumes inherit controlm:controlm ownership
+#    on first creation — agent populates contents at runtime
+# ──────────────────────────────────────────────────────────────
+RUN mkdir -p \
+  /opt/ctm/ctm/alert \
+  /opt/ctm/ctm/backup \
+  /opt/ctm/ctm/capdef \
+  /opt/ctm/ctm/cfg_backup \
+  /opt/ctm/ctm/cm \
+  /opt/ctm/ctm/dailylog \
+  /opt/ctm/ctm/data \
+  /opt/ctm/ctm/measure \
+  /opt/ctm/ctm/metric \
+  /opt/ctm/ctm/onstmt \
+  /opt/ctm/ctm/pid \
+  /opt/ctm/ctm/procid \
+  /opt/ctm/ctm/proclog \
+  /opt/ctm/ctm/runtime \
+  /opt/ctm/ctm/scripts \
+  /opt/ctm/ctm/status \
+  /opt/ctm/ctm/svrlocks \
+  /opt/ctm/ctm/sysout \
+  /opt/ctm/ctm/temp
+
+# ──────────────────────────────────────────────────────────────
+# 5) Verify installations
 # ──────────────────────────────────────────────────────────────
 RUN python3 --version \
   && pip --version \
@@ -101,14 +129,14 @@ RUN python3 --version \
   && pkg-config --version
 
 # ──────────────────────────────────────────────────────────────
-# 5) Provisioning entrypoint (pass real values at runtime)
+# 6) Provisioning entrypoint (pass real values at runtime)
+#    CTM_ENDPOINT, CTM_API_TOKEN, CTM_AGENT_TAG, CTM_AGENT_NAME
+#    must be injected at runtime — never bake secrets into the image
 # ──────────────────────────────────────────────────────────────
 ENV \
   BMC_INST_JAVA_HOME=${JAVA_HOME} \
   CTM_ENV_NAME=default
-# CTM_ENDPOINT and CTM_API_TOKEN must be injected at runtime only — never bake secrets into the image
 
-# Copy your entrypoint script (make sure it's executable)
 COPY --chown=controlm:controlm entrypoint.sh /opt/ctm/entrypoint.sh
 RUN chmod +x /opt/ctm/entrypoint.sh
 

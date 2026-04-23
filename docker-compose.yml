@@ -7,35 +7,51 @@ services:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
+      CTM_AGENT_TAG: "${CTM_AGENT_TAG}"
+      CTM_AGENT_NAME: "${CTM_AGENT_NAME:-}"
     volumes:
-      - ctm_backup:/opt/ctm/backup
-      - ctm_capdef:/opt/ctm/capdef
-      - ctm_dailylog:/opt/ctm/dailylog
-      - ctm_data:/opt/ctm/data
-      - ctm_measure:/opt/ctm/measure
-      - ctm_onstmt:/opt/ctm/onstmt
-      - ctm_pid:/opt/ctm/pid
-      - ctm_procid:/opt/ctm/procid
-      - ctm_sysout:/opt/ctm/sysout
-      - ctm_status:/opt/ctm/status
-      - ctm_temp:/opt/ctm/temp
-      - ctm_cm:/opt/ctm/cm
+      - ctm_alert:/opt/ctm/ctm/alert
+      - ctm_backup:/opt/ctm/ctm/backup
+      - ctm_capdef:/opt/ctm/ctm/capdef
+      - ctm_cfg_backup:/opt/ctm/ctm/cfg_backup
+      - ctm_cm:/opt/ctm/ctm/cm
+      - ctm_dailylog:/opt/ctm/ctm/dailylog
+      - ctm_data:/opt/ctm/ctm/data
+      - ctm_measure:/opt/ctm/ctm/measure
+      - ctm_metric:/opt/ctm/ctm/metric
+      - ctm_onstmt:/opt/ctm/ctm/onstmt
+      - ctm_pid:/opt/ctm/ctm/pid
+      - ctm_procid:/opt/ctm/ctm/procid
+      - ctm_proclog:/opt/ctm/ctm/proclog
+      - ctm_runtime:/opt/ctm/ctm/runtime
+      - ctm_scripts:/opt/ctm/ctm/scripts
+      - ctm_status:/opt/ctm/ctm/status
+      - ctm_svrlocks:/opt/ctm/ctm/svrlocks
+      - ctm_sysout:/opt/ctm/ctm/sysout
+      - ctm_temp:/opt/ctm/ctm/temp
       - ctm_se_storage:/home/controlm/se_storage
     stdin_open: true
     tty: true
     restart: unless-stopped
 
 volumes:
+  ctm_alert:
   ctm_backup:
   ctm_capdef:
+  ctm_cfg_backup:
+  ctm_cm:
   ctm_dailylog:
   ctm_data:
   ctm_measure:
+  ctm_metric:
   ctm_onstmt:
   ctm_pid:
   ctm_procid:
-  ctm_sysout:
+  ctm_proclog:
+  ctm_runtime:
+  ctm_scripts:
   ctm_status:
+  ctm_svrlocks:
+  ctm_sysout:
   ctm_temp:
-  ctm_cm:
   ctm_se_storage:
