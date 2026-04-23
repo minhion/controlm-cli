@@ -46,6 +46,25 @@ docker run \
 ```
 
 ### Docker Compose
+
+The following Control-M agent directories must be persisted across container restarts:
+
+| Directory | Purpose |
+|-----------|---------|
+| `/opt/ctm/backup` | Job backup files |
+| `/opt/ctm/capdef` | Capacity planning definitions |
+| `/opt/ctm/dailylog` | Daily log files |
+| `/opt/ctm/data` | Agent data files |
+| `/opt/ctm/measure` | Measurement data |
+| `/opt/ctm/onstmt` | On-statement files |
+| `/opt/ctm/pid` | Process ID files |
+| `/opt/ctm/procid` | Process ID tracking |
+| `/opt/ctm/sysout` | Job sysout output |
+| `/opt/ctm/status` | Agent status files |
+| `/opt/ctm/temp` | Temporary files |
+| `/opt/ctm/cm` | Configuration manager files |
+| `/home/controlm/se_storage` | Self-service storage |
+
 Create a `.env` file with your credentials:
 ```env
 CTM_ENDPOINT=https://<your-controlm-host>/automation-api
@@ -59,6 +78,8 @@ docker compose up -d
 docker compose exec ctm-cli bash
 ```
 
+#### Named Volumes (recommended)
+
 `docker-compose.yml`:
 ```yaml
 services:
@@ -69,15 +90,66 @@ services:
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
     volumes:
-      - ctm_config:/opt/ctm/.ctm
-      - ctm_logs:/opt/ctm/logs
+      - ctm_backup:/opt/ctm/backup
+      - ctm_capdef:/opt/ctm/capdef
+      - ctm_dailylog:/opt/ctm/dailylog
+      - ctm_data:/opt/ctm/data
+      - ctm_measure:/opt/ctm/measure
+      - ctm_onstmt:/opt/ctm/onstmt
+      - ctm_pid:/opt/ctm/pid
+      - ctm_procid:/opt/ctm/procid
+      - ctm_sysout:/opt/ctm/sysout
+      - ctm_status:/opt/ctm/status
+      - ctm_temp:/opt/ctm/temp
+      - ctm_cm:/opt/ctm/cm
+      - ctm_se_storage:/home/controlm/se_storage
     stdin_open: true
     tty: true
     restart: unless-stopped
 
 volumes:
-  ctm_config:
-  ctm_logs:
+  ctm_backup:
+  ctm_capdef:
+  ctm_dailylog:
+  ctm_data:
+  ctm_measure:
+  ctm_onstmt:
+  ctm_pid:
+  ctm_procid:
+  ctm_sysout:
+  ctm_status:
+  ctm_temp:
+  ctm_cm:
+  ctm_se_storage:
+```
+
+#### Bind Mounts (use when you need direct host access to agent files)
+
+```yaml
+services:
+  ctm-cli:
+    image: minhion/controlm-cli:24
+    environment:
+      CTM_ENDPOINT: "${CTM_ENDPOINT}"
+      CTM_API_TOKEN: "${CTM_API_TOKEN}"
+      CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
+    volumes:
+      - /your/persistent/path/backup:/opt/ctm/backup
+      - /your/persistent/path/capdef:/opt/ctm/capdef
+      - /your/persistent/path/dailylog:/opt/ctm/dailylog
+      - /your/persistent/path/data:/opt/ctm/data
+      - /your/persistent/path/measure:/opt/ctm/measure
+      - /your/persistent/path/onstmt:/opt/ctm/onstmt
+      - /your/persistent/path/pid:/opt/ctm/pid
+      - /your/persistent/path/procid:/opt/ctm/procid
+      - /your/persistent/path/sysout:/opt/ctm/sysout
+      - /your/persistent/path/status:/opt/ctm/status
+      - /your/persistent/path/temp:/opt/ctm/temp
+      - /your/persistent/path/cm:/opt/ctm/cm
+      - /your/persistent/path/se_storage:/home/controlm/se_storage
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
 ```
 
 ### Tags
