@@ -63,7 +63,7 @@ The following Control-M agent directories must be persisted across container res
 | `/opt/ctm/status` | Agent status files |
 | `/opt/ctm/temp` | Temporary files |
 | `/opt/ctm/cm` | Configuration manager files |
-| `/home/controlm/se_storage` | Self-service storage |
+| `/home/controlm/se_storage` | Local store for scripts and files brought into the container for job execution |
 
 Create a `.env` file with your credentials:
 ```env
