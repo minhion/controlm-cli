@@ -8,9 +8,7 @@
 # Control-M CLI + Agent Provisioning Support (Ubuntu 24.04 + JDK 25)
 
 This Docker image provides a ready-to-use environment for **Control-M CLI** with **Control-M Agent** provisioning support.  
-It’s based on **Ubuntu 24.04** and includes **Temurin JDK 25** for provisioning Control-M agent and plugins.
-
-[Docker Repo](https://hub.docker.com/r/minhion/controlm-cli)
+It's based on **Ubuntu 24.04** and includes **Temurin JDK 25 LTS** for provisioning Control-M agent and plugins.
 
 To provision a Control-M agent, follow the following guide after running the container. [https://documents.bmc.com/supportu/API/Monthly/en-US/Documentation/API_Services_ProvisionService.htm](https://documents.bmc.com/supportu/API/Monthly/en-US/Documentation/API_Services_ProvisionService.htm)
 
@@ -83,9 +81,9 @@ volumes:
 ```
 
 ### Tags
-24 → Ubuntu 24.04 + JDK 25 LTS + Control-M CLI
-22 → Ubuntu 22.04 + JDK 21 + Control-M CLI (legacy)
+`24` → Ubuntu 24.04 + JDK 25 LTS + Control-M CLI  
+`22` → Ubuntu 22.04 + JDK 21 + Control-M CLI (legacy)
 
 ### 📄 License
-BMC Control-M CLI and Agent are subject to BMC Software license terms.
+BMC Control-M CLI and Agent are subject to BMC Software license terms.  
 You must have a valid Control-M license to use this image with Control-M environments.
