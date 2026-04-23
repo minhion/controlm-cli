@@ -1,0 +1,23 @@
+services:
+  ctm-cli:
+    image: minhion/controlm-cli:24
+    build:
+      context: .
+    environment:
+      CTM_ENDPOINT: "${CTM_ENDPOINT}"
+      CTM_API_TOKEN: "${CTM_API_TOKEN}"
+      CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
+    volumes:
+      # Persist CTM environment profiles so re-runs don't re-register
+      - ctm_config:/opt/ctm/.ctm
+      # Persist agent logs across container restarts
+      - ctm_logs:/opt/ctm/logs
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  ctm_config:
+    driver: local
+  ctm_logs:
+    driver: local

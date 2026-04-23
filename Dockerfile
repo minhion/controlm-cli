@@ -105,9 +105,8 @@ RUN python3 --version \
 # ──────────────────────────────────────────────────────────────
 ENV \
   BMC_INST_JAVA_HOME=${JAVA_HOME} \
-  CTM_ENV_NAME=default \
-  CTM_ENDPOINT="" \
-  CTM_API_TOKEN=""
+  CTM_ENV_NAME=default
+# CTM_ENDPOINT and CTM_API_TOKEN must be injected at runtime only — never bake secrets into the image
 
 # Copy your entrypoint script (make sure it's executable)
 COPY --chown=controlm:controlm entrypoint.sh /opt/ctm/entrypoint.sh
