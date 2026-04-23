@@ -44,7 +44,7 @@ docker run \
   -e CTM_ENDPOINT="https://<your-controlm-host>/automation-api" \
   -e CTM_API_TOKEN="<your-api-token>" \
   -e CTM_ENV_NAME="<your-environment-name>" \
-  -it minhion/controlm-cli:24
+  -it minhion/controlm-cli:22.100
 ```
 
 ### Docker Compose
@@ -86,7 +86,7 @@ docker compose exec ctm-cli bash
 ```yaml
 services:
   ctm-cli:
-    image: minhion/controlm-cli:24
+    image: minhion/controlm-cli:22.100
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
@@ -130,7 +130,7 @@ volumes:
 ```yaml
 services:
   ctm-cli:
-    image: minhion/controlm-cli:24
+    image: minhion/controlm-cli:22.100
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
@@ -155,8 +155,10 @@ services:
 ```
 
 ### Tags
-24 → Ubuntu 24.04 + JDK 25 LTS + Control-M CLI
-22 → Ubuntu 22.04 + JDK 21 + Control-M CLI (legacy)
+Docker image tags mirror the Control-M agent version (major version `9.0` dropped):
+
+`22.100` → Control-M Agent 9.0.22.100 · Ubuntu 24.04 · JDK 25 LTS  
+`latest` → always points to the most recent release
 
 ### 📄 License
 BMC Control-M CLI and Agent are subject to BMC Software license terms.

@@ -1,6 +1,6 @@
 services:
   ctm-cli:
-    image: minhion/controlm-cli:24
+    image: minhion/controlm-cli:22.100
     build:
       context: .
     environment:
