@@ -41,6 +41,7 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value={{tag}}
+            type=sha,prefix={{tag}}-,format=short
             type=raw,value=latest
 
       - name: Build and push
