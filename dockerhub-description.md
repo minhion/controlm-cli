@@ -7,23 +7,28 @@
 
 # Control-M CLI + Agent Provisioning Support (Ubuntu 24.04 + JDK 25)
 
-This Docker image provides a ready-to-use environment for **Control-M CLI** with **Control-M Agent** provisioning support.  
-It's based on **Ubuntu 24.04** and includes **Temurin JDK 25 LTS** for provisioning Control-M agent and plugins.
+This Docker image provides a ready-to-use environment for the **Control-M CLI** (Automation API), with optional **Control-M Agent** provisioning.  
+It's based on **Ubuntu 24.04** and includes **Temurin JDK 25 LTS** for provisioning the Control-M agent and plugins.
 
-[Docker Repo](https://hub.docker.com/r/minhion/controlm-cli)
+[Docker Hub](https://hub.docker.com/r/minhion/controlm-cli) · [GitHub](https://github.com/minhion/controlm-cli)
 
-To provision a Control-M agent, follow the following guide after running the container. [https://documents.bmc.com/supportu/API/Monthly/en-US/Documentation/API_Services_ProvisionService.htm](https://documents.bmc.com/supportu/API/Monthly/en-US/Documentation/API_Services_ProvisionService.htm)
+<!-- README.md is the source of truth; it is pushed to Docker Hub automatically on every change to main. -->
+
+It runs in one of two modes:
+
+- **CLI-only** (no `CTM_AGENT_TAG`): registers your Control-M environment with the CLI and stays up so you can run `ctm` commands.
+- **CLI + Agent** (`CTM_AGENT_TAG` set): also provisions a Control-M Agent on first start. See BMC's [Provision service documentation](https://documents.bmc.com/supportu/API/Monthly/en-US/Documentation/API_Services_ProvisionService.htm).
 
 ---
 
 ## 🚀 Features
 - **Ubuntu 24.04 LTS** base image
 - **Temurin JDK 25 LTS** included
-- **Python:** 3.x (installed via system package; venv-ready)
-- **Control-M CLI** pre-installed inside a Python virtual environment
-- **Control-M Agent** provisioned automatically on first container start
-- Ready for **Control-M Agent** provisioning
-- Ideal for automation in CI/CD pipelines
+- **Python 3** (system package) with the CLI in a virtual environment
+- **Control-M CLI** pre-installed and on `PATH`
+- **Control-M Agent** provisioned automatically on first start when `CTM_AGENT_TAG` is set
+- **Restart-safe startup:** the container can be restarted or recreated without errors
+- Suited to automation in CI/CD pipelines
 
 ---
 
@@ -33,25 +38,73 @@ To provision a Control-M agent, follow the following guide after running the con
 |-------------------|----------|-------------|
 | `CTM_ENDPOINT`    | ✅       | Control-M Automation API endpoint (e.g., On-Premise `https://<controlmEndPointHost>:8443/automation-api` or SaaS `https://tenant-123-aapi.prod.controlm.com/automation-api`) |
 | `CTM_API_TOKEN`   | ✅       | API token for authenticating with Control-M |
-| `CTM_ENV_NAME`    | ✅       | Environment name (default: `default`) |
-| `CTM_AGENT_TAG`   | ✅       | Agent tag name used for provisioning (required on first start) |
-| `CTM_AGENT_NAME`  | ❌       | Optional display name for the agent |
+| `CTM_ENV_NAME`    | ❌       | Name the CLI uses for this environment (default: `default`) |
+| `CTM_AGENT_TAG`   | ❌       | Agent tag to provision. Set it to install an agent on first start; leave it unset for CLI-only |
+| `CTM_AGENT_NAME`  | ❌       | Display name for the provisioned agent |
+
+---
+
+## 🔁 Startup Behaviour
+
+On every start the entrypoint:
+
+1. Registers `CTM_ENV_NAME` → `CTM_ENDPOINT` with the CLI and makes it the default environment.  
+   If it is already registered (for example after `docker restart`), it is deleted and re-added, so a **rotated token or changed endpoint takes effect on the next restart**.  
+   If registration fails for any other reason (bad token, unreachable endpoint), the container exits with the error in its logs.
+2. Provisions the agent if `CTM_AGENT_TAG` is set and no agent is installed yet; otherwise skips this step.
+3. Runs the container command (default: `bash`).
+
+Check what happened with `docker logs <container>`.
 
 ---
 
 ## 🛠 Usage
 
-### Run Control-M CLI container
+### CLI-only
 ```bash
-docker run \
+docker run -d --name ctm-cli \
+  -e CTM_ENDPOINT="https://<your-controlm-host>/automation-api" \
+  -e CTM_API_TOKEN="<your-api-token>" \
+  -e CTM_ENV_NAME="<your-environment-name>" \
+  -it minhion/controlm-cli:22.100.1
+
+docker exec -it ctm-cli ctm config servers::get
+```
+
+### CLI + Agent
+```bash
+docker run -d --name ctm-agent \
   -e CTM_ENDPOINT="https://<your-controlm-host>/automation-api" \
   -e CTM_API_TOKEN="<your-api-token>" \
   -e CTM_ENV_NAME="<your-environment-name>" \
   -e CTM_AGENT_TAG="<your-agent-tag>" \
-  -it minhion/controlm-cli:22.100
+  -it minhion/controlm-cli:22.100.1
 ```
 
-### Docker Compose
+### Docker Compose (CLI-only)
+```yaml
+services:
+  ctm-cli:
+    image: minhion/controlm-cli:22.100.1
+    container_name: ctm-cli
+    environment:
+      CTM_ENDPOINT: "${CTM_ENDPOINT}"
+      CTM_API_TOKEN: "${CTM_API_TOKEN}"
+      CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
+    volumes:
+      - ctm_se_storage:/home/controlm/se_storage
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  ctm_se_storage:
+```
+
+### Multiple Control-M environments
+Run one container (or one Compose / Portainer stack) per Automation API endpoint. Give each its own `CTM_ENDPOINT`, `CTM_API_TOKEN` and `CTM_ENV_NAME`, a unique `container_name`, and its own volumes so containers don't share files.
+
+### Docker Compose (CLI + Agent)
 
 The following Control-M agent directories are persisted across container restarts.  
 All directories live under `/opt/ctm/ctm/` and are pre-created in the image with `controlm:controlm` ownership so named volumes inherit the correct permissions on first creation.
@@ -100,12 +153,12 @@ docker compose exec ctm-cli bash
 ```yaml
 services:
   ctm-cli:
-    image: minhion/controlm-cli:22.100
+    image: minhion/controlm-cli:22.100.1
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
-      CTM_AGENT_TAG: "${CTM_AGENT_TAG}"
+      CTM_AGENT_TAG: "${CTM_AGENT_TAG:-}"
       CTM_AGENT_NAME: "${CTM_AGENT_NAME:-}"
     volumes:
       - ctm_alert:/opt/ctm/ctm/alert
@@ -160,12 +213,12 @@ volumes:
 ```yaml
 services:
   ctm-cli:
-    image: minhion/controlm-cli:22.100
+    image: minhion/controlm-cli:22.100.1
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
-      CTM_AGENT_TAG: "${CTM_AGENT_TAG}"
+      CTM_AGENT_TAG: "${CTM_AGENT_TAG:-}"
       CTM_AGENT_NAME: "${CTM_AGENT_NAME:-}"
     volumes:
       - /your/persistent/path/alert:/opt/ctm/ctm/alert
@@ -193,12 +246,27 @@ services:
     restart: unless-stopped
 ```
 
-### Tags
-Docker image tags mirror the Control-M agent version (major version `9.0` dropped):
+---
 
-`22.100` → Control-M Agent 9.0.22.100 · Ubuntu 24.04 · JDK 25 LTS  
-`latest` → always points to the most recent release
+## 🏷 Tags
+Image tags follow the Control-M agent version (major version `9.0` dropped), with a trailing number for image fixes:
 
-### 📄 License
+| Tag | Contents |
+|-----|----------|
+| `22.100.1` | Control-M Agent 9.0.22.100 · Ubuntu 24.04 · JDK 25 LTS · restart-safe entrypoint, optional `CTM_AGENT_TAG` **(recommended)** |
+| `22.100.1-<sha>` | The same build pinned to a Git commit; never moves |
+| `22.100` | Original 9.0.22.100 build. Its container goes into a restart loop after any restart and requires `CTM_AGENT_TAG`; use `22.100.1` instead |
+| `22` | Legacy 9.0.22 build (Aug 2025); superseded |
+| `latest` | Always the most recent release |
+
+For production stacks, pin a specific tag (or a `-<sha>` tag) rather than `latest`.
+
+## 📝 Changelog
+- **22.100.1:** Fixed the restart loop (`Environment '<name>' already exists`) when a container restarts. An existing environment is now refreshed so token and endpoint changes apply. `CTM_AGENT_TAG` is optional (CLI-only mode). Added immutable `-<sha>` image tags.
+- **22.100:** Agent provisioning on first start, full `/opt/ctm/ctm/` volume layout, pre-created directories with correct ownership.
+
+---
+
+## 📄 License
 BMC Control-M CLI and Agent are subject to BMC Software license terms.  
 You must have a valid Control-M license to use this image with Control-M environments.

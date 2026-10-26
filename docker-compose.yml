@@ -1,13 +1,13 @@
 services:
   ctm-cli:
-    image: minhion/controlm-cli:22.100
+    image: minhion/controlm-cli:22.100.1
     build:
       context: .
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
-      CTM_AGENT_TAG: "${CTM_AGENT_TAG}"
+      CTM_AGENT_TAG: "${CTM_AGENT_TAG:-}"
       CTM_AGENT_NAME: "${CTM_AGENT_NAME:-}"
     volumes:
       - ctm_alert:/opt/ctm/ctm/alert
