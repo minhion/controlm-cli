@@ -256,40 +256,24 @@ Check what happened with `docker logs <container>`.
 
 ## 💾 Persistent volumes
 
-Agent data directories under `/opt/ctm/ctm/` are pre-created in the image with `controlm:controlm` ownership, so named volumes get the right permissions on first creation. `docker-compose.yml` mounts all of them:
+`docker-compose.yml` mounts one named volume:
 
 | Directory | Purpose |
 |-----------|---------|
-| `/opt/ctm/ctm/alert` | Alert files |
-| `/opt/ctm/ctm/backup` | Job backup files |
-| `/opt/ctm/ctm/capdef` | Capacity planning definitions |
-| `/opt/ctm/ctm/cfg_backup` | Configuration backups |
-| `/opt/ctm/ctm/cm` | Configuration manager files |
-| `/opt/ctm/ctm/dailylog` | Daily log files |
-| `/opt/ctm/ctm/data` | Agent data files |
-| `/opt/ctm/ctm/measure` | Measurement data |
-| `/opt/ctm/ctm/metric` | Metric data |
-| `/opt/ctm/ctm/onstmt` | On-statement files |
-| `/opt/ctm/ctm/pid` | Process ID files |
-| `/opt/ctm/ctm/procid` | Process ID tracking |
-| `/opt/ctm/ctm/proclog` | Process log files |
-| `/opt/ctm/ctm/runtime` | Runtime files |
-| `/opt/ctm/ctm/scripts` | Agent scripts |
-| `/opt/ctm/ctm/status` | Agent status files |
-| `/opt/ctm/ctm/svrlocks` | Server lock files |
-| `/opt/ctm/ctm/sysout` | Job sysout output |
-| `/opt/ctm/ctm/temp` | Temporary files |
-| `/home/controlm/se_storage` | Local store for scripts and files brought into the container for job execution |
+| `/home/controlm/se_storage` | Local store for scripts and data files brought into the container for job execution. Point job and connection profile paths here to keep files across container recreation |
 
-The agent binaries (`/opt/ctm/ctm/exe_*`) live in the container layer, so **recreating** the container (not restarting it) provisions a fresh agent. Remove the old agent from Control-M first, or give the new one a different `CTM_AGENT_NAME`.
+The agent itself (`/opt/ctm/ctm`, including its binaries, configuration, sysout and logs) lives in the container layer. It survives `docker restart`, but **recreating** the container (not restarting it) provisions a fresh agent. Remove the old agent from Control-M first, or give the new one a different `CTM_AGENT_NAME`.
 
-To use host directories instead of named volumes, replace each entry, e.g.:
+> ⚠️ **Don't mount subdirectories of `/opt/ctm/ctm` as separate volumes.** The agent moves files between them with a rename (for example, each job's exit status goes from `runtime/` to `status/`). A rename can't cross filesystems, so the job runs but stays **Executing** in Control-M, and the agent logs `Invalid cross-device link` in `/opt/ctm/ctm/proclog/AS_*.log`. The `docker-compose.yml` in this repository did this up to `22.100.2`; see [Troubleshooting](#-troubleshooting).
+
+To use a host directory instead of the named volume:
 
 ```yaml
     volumes:
-      - /your/persistent/path/sysout:/opt/ctm/ctm/sysout
       - /your/persistent/path/se_storage:/home/controlm/se_storage
 ```
+
+The host directory must be writable by the container's `controlm` user (`docker exec <container> id controlm` shows its UID).
 
 ### Multiple Control-M environments
 
@@ -312,6 +296,7 @@ Run one container (or one Compose / Portainer stack) per Automation API endpoint
 |---------|-------------|
 | `There is not enough available disk space in /opt/ctm` | Free space on the Docker host's storage. See [Requirements](#-requirements) |
 | `The Agent on this account already exists in the Control-M environment` | An agent with that name is already registered. Delete it in Control-M Web, or use another `CTM_AGENT_NAME`, then `docker compose up -d --force-recreate` |
+| Jobs start and finish on the agent but stay **Executing** in Control-M; `proclog/AS_*.log` shows `Invalid cross-device link` | Subdirectories of `/opt/ctm/ctm` are mounted as separate volumes (the layout in `docker-compose.yml` up to `22.100.2`). Remove those volume entries, keeping `se_storage`. Delete the agent in Control-M Web, then recreate the container so it provisions a new agent |
 | `a previous agent provisioning attempt failed` | The agent was installed but its setup failed. Check `~/BMCINSTALL/log` and `docker logs`, fix the cause, then recreate the container |
 | `ag_diag_comm: command not found` | You're in a shell that was opened before the agent installed. Open a new one: `docker exec -it <container> bash` |
 | `CTM_AGENT_PORT is set but CTM_SERVER is not` | `agent` mode positional arguments can't be skipped. Set the earlier ones too |
@@ -357,6 +342,7 @@ For production stacks, pin a specific tag (or a `-<sha>` tag) rather than `lates
 
 ## 📝 Changelog
 
+- **docker-compose.yml fix (image unchanged):** Removed the per-directory volumes under `/opt/ctm/ctm`. Mounting them separately made every job hang in **Executing** (`Invalid cross-device link`). Only `se_storage` is mounted now.
 - **22.100.2:**
   - **Base image switched from Ubuntu 24.04 to AlmaLinux 9.** Pin `22.100.1` to stay on Ubuntu. AlmaLinux 9 base image with Temurin JDK 25 from the Adoptium RPM repository; the agent image defaults to `Agent_Alma.Linux`.
   - New provisioning variables: `CTM_AGENT_MODE` (`saas`/`agent`/`none`), `CTM_AGENT_IMAGE`, `CTM_SERVER`, `CTM_AGENT_PORT`, `CTM_AGENT_CONFIG_FILE` and `CTM_AGENT_REPO`.
