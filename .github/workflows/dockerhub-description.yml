@@ -25,5 +25,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: minhion/controlm-cli
-          short-description: "Control-M CLI (Automation API) image, Ubuntu 24.04 + JDK 25, optional agent provisioning"
+          short-description: "Control-M CLI (Automation API) image, AlmaLinux 9 + JDK 25, optional agent + plugin provisioning"
           readme-filepath: ./README.md

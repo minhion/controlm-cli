@@ -3,7 +3,8 @@
 # ──────────────────────────────────────────────────────────────
 # Base image & metadata
 # ──────────────────────────────────────────────────────────────
-FROM ubuntu:24.04
+ARG ALMA_VERSION=9
+FROM almalinux:${ALMA_VERSION}
 
 # ──────────────────────────────────────────────────────────────
 # Required min specs for Control-M Agent
@@ -13,8 +14,7 @@ LABEL \
   memory.required="6GB" \
   spec.cpu2017.integer.rate="10"
 
-ENV DEBIAN_FRONTEND=noninteractive \
-  JAVA_HOME=/usr/lib/jvm/temurin-25-jdk-amd64 \
+ENV JAVA_HOME=/usr/lib/jvm/temurin-25-jdk \
   PYTHONUNBUFFERED=1
 
 # Use bash with pipefail for all RUN commands
@@ -22,27 +22,42 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 # ──────────────────────────────────────────────────────────────
 # 1) Install OS packages
-#    • psmisc (pstree)
-#    • pkg-config
-#    • libglib2.0-0 + libglib2.0-dev
+#    • psmisc (pstree), procps-ng, hostname, which, iproute
+#    • pkgconf-pkg-config
+#    • libnsl + libxcrypt-compat (RHEL 9 compat libs)
 #    • tar, gzip, bzip2, zip, unzip
-#    • python3-venv, pip
+#    • python3, pip
 #    • Temurin JDK 25 @ https://adoptium.net/temurin/releases
+#    curl-minimal is swapped for full curl (--allowerasing)
 # ──────────────────────────────────────────────────────────────
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
+RUN printf '%s\n' \
+    '[Adoptium]' \
+    'name=Adoptium' \
+    'baseurl=https://packages.adoptium.net/artifactory/rpm/rhel/$releasever/$basearch' \
+    'enabled=1' \
+    'gpgcheck=1' \
+    'gpgkey=https://packages.adoptium.net/artifactory/api/gpg/key/public' \
+    > /etc/yum.repos.d/adoptium.repo \
+  && dnf install -y --allowerasing --setopt=install_weak_deps=False \
   wget \
   curl \
-  gnupg \
+  gnupg2 \
   ca-certificates \
   psmisc \
+  procps-ng \
+  hostname \
+  which \
+  findutils \
+  iproute \
   net-tools \
-  libsigsegv2 \
-  libmpfr6 \
-  libtinfo6 \
+  libsigsegv \
+  mpfr \
+  ncurses-libs \
+  libnsl \
+  libxcrypt-compat \
   cups \
   jq \
-  pkg-config \
+  pkgconf-pkg-config \
   sudo \
   tar \
   gzip \
@@ -51,18 +66,9 @@ RUN apt-get update \
   unzip \
   python3 \
   python3-pip \
-  python3-venv \
-  && mkdir -p /etc/apt/keyrings \
-  && wget -qO /etc/apt/keyrings/adoptium.asc \
-    https://packages.adoptium.net/artifactory/api/gpg/key/public \
-  && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] \
-  https://packages.adoptium.net/artifactory/deb \
-  $(awk -F= '/^VERSION_CODENAME/{print $2}' /etc/os-release) main" \
-  > /etc/apt/sources.list.d/adoptium.list \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends temurin-25-jdk \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+  temurin-25-jdk \
+  && dnf clean all \
+  && rm -rf /var/cache/dnf
 
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
@@ -71,6 +77,7 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 # ──────────────────────────────────────────────────────────────
 RUN groupadd -r controlm \
   && useradd -r -g controlm -d /opt/ctm -s /bin/bash -m controlm \
+  && chmod 755 /opt/ctm \
   && echo 'controlm ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
   && mkdir -p /home/controlm/se_storage \
   && chown -R controlm:controlm /home/controlm
@@ -87,7 +94,8 @@ RUN wget -q \
   && chmod +x install_ctm_cli.py \
   && python3 -m venv venv \
   && ./venv/bin/pip install --upgrade pip setuptools wheel \
-  && ./venv/bin/python install_ctm_cli.py
+  && ./venv/bin/python install_ctm_cli.py \
+  && rm -rf install_ctm_cli.py extracted_package .cache
 
 # Ensure `ctm` is on PATH
 ENV PATH="/opt/ctm/venv/bin:$PATH"
