@@ -39,7 +39,7 @@ It's based on **AlmaLinux 9** (RHEL-compatible) and includes **Temurin JDK 25 LT
 - **Temurin JDK 25 LTS** from the Adoptium RPM repository
 - **Python 3** (system package) with the CLI in a virtual environment
 - **Control-M CLI** pre-installed and on `PATH`
-- **Control-M Agent** provisioned on first start, for Helix Control-M (`ctm provision saas::install`) or self-hosted Control-M (`ctm provision agent::install`)
+- **Control-M Agent** provisioned on first start, for Control-M SaaS (`ctm provision saas::install`) or self-hosted Control-M (`ctm provision agent::install`)
 - Agent image defaults to **`Agent_Alma.Linux`**
 - **Plugins** deployed automatically after the agent when `CTM_DEPLOY_PLUGINS=true`
 - **Restart-safe:** the CLI environment is refreshed on every start, the agent is started again after a container restart, and plugins are deployed only once
@@ -67,7 +67,7 @@ docker run -d --name ctm-cli \
 docker exec -it ctm-cli ctm config servers
 ```
 
-### 2. CLI + Agent + Plugins with Docker Compose (Helix Control-M)
+### 2. CLI + Agent + Plugins with Docker Compose (Control-M SaaS)
 
 ```bash
 git clone https://github.com/minhion/controlm-cli && cd controlm-cli
@@ -83,9 +83,9 @@ CTM_ENV_NAME=default
 CTM_AGENT_TAG=<your-agent-tag>
 CTM_AGENT_NAME=<your-agent-name>
 
-# Optional: deploy plugins once the agent is installed
+# Optional: deploy plugins once the agent is installed (comma-separated)
 CTM_DEPLOY_PLUGINS=true
-CTM_PLUGINS=DataAssurance_plugin.Linux
+CTM_PLUGINS=DataAssurance_plugin.Linux,AWS_Lambda_plugin.Linux
 ```
 
 ```bash
@@ -103,19 +103,19 @@ ag_diag_comm
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `CTM_ENDPOINT` | ✅ | | Automation API endpoint, e.g. Helix `https://<tenant>-aapi.<region>.controlm.com/automation-api` or self-hosted `https://<emHost>:8443/automation-api` |
+| `CTM_ENDPOINT` | ✅ | | Automation API endpoint, e.g. Control-M SaaS `https://<tenant>-aapi.<region>.controlm.com/automation-api` or self-hosted `https://<emHost>:8443/automation-api` |
 | `CTM_API_TOKEN` | ✅ | | API token used by the CLI |
 | `CTM_ENV_NAME` | | `default` | Name the CLI uses for this environment |
 | `CTM_AGENT_MODE` | | `saas` if `CTM_AGENT_TAG` is set, else `none` | `saas`, `agent` or `none` (see [Agent provisioning](#-agent-provisioning)) |
 | `CTM_AGENT_IMAGE` | | `Agent_Alma.Linux` | Provision image for the agent. List them with `ctm provision images Linux` |
-| `CTM_AGENT_TAG` | `saas` mode | | Agent tag in Helix Control-M |
+| `CTM_AGENT_TAG` | `saas` mode | | Agent tag in Control-M SaaS |
 | `CTM_AGENT_NAME` | | | Agent name (`saas`: host name, `agent`: agent name) |
 | `CTM_SERVER` | | | `agent` mode: Control-M/Server to connect the agent to |
 | `CTM_AGENT_PORT` | | | `agent` mode: agent port |
 | `CTM_AGENT_CONFIG_FILE` | | | Configuration file passed as `-f <file>`. Mount it into the container |
 | `CTM_AGENT_REPO` | | | Repository passed as `-r <name>` (self-hosted local repository, see below) |
 | `CTM_DEPLOY_PLUGINS` | | `false` | `true` deploys each image in `CTM_PLUGINS` after the agent is installed |
-| `CTM_PLUGINS` | | | Comma- or space-separated plugin images, e.g. `DataAssurance_plugin.Linux,AWS_Lambda_plugin.Linux` |
+| `CTM_PLUGINS` | | | One plugin image, or several as a **comma-separated list**, e.g. `AWS_Lambda_plugin.Linux,Azure_Service_Bus_plugin.Linux,OCI_Functions_plugin.Linux`. See [Plugins](#-plugins) |
 
 ---
 
@@ -128,7 +128,7 @@ CTM_AGENT_MODE=saas   ctm provision saas::install  <CTM_AGENT_IMAGE> <CTM_AGENT_
 CTM_AGENT_MODE=agent  ctm provision agent::install <CTM_AGENT_IMAGE> [CTM_SERVER] [CTM_AGENT_NAME] [CTM_AGENT_PORT] [-f CTM_AGENT_CONFIG_FILE] [-r CTM_AGENT_REPO]
 ```
 
-- **Helix Control-M (SaaS):** set `CTM_AGENT_TAG`; `CTM_AGENT_MODE` defaults to `saas`.  
+- **Control-M SaaS:** set `CTM_AGENT_TAG`; `CTM_AGENT_MODE` defaults to `saas`.  
   Example: `CTM_AGENT_TAG=Admin`, `CTM_AGENT_NAME=my-alma-agent` runs  
   `ctm provision saas::install Agent_Alma.Linux Admin my-alma-agent`.
 - **Self-hosted Control-M:** set `CTM_AGENT_MODE=agent` and, optionally, `CTM_SERVER`, `CTM_AGENT_NAME` and `CTM_AGENT_PORT`.  
@@ -142,17 +142,72 @@ Reference: BMC [Provision service documentation](https://documents.bmc.com/suppo
 
 ## 🧩 Plugins
 
-Set `CTM_DEPLOY_PLUGINS=true` and list the plugin images in `CTM_PLUGINS`. After the agent is installed, the entrypoint runs, for each one:
+Set `CTM_DEPLOY_PLUGINS=true` and list the plugin images in `CTM_PLUGINS`. After the agent is installed, the entrypoint runs `ctm provision image <plugin>` for each one, in the order listed.
 
-```bash
-ctm provision image <plugin>
+### One plugin
+
+```env
+CTM_DEPLOY_PLUGINS=true
+CTM_PLUGINS=DataAssurance_plugin.Linux
 ```
 
-- List the available plugins with `ctm provision images Linux` (names end in `_plugin.Linux`).
-- Each plugin is deployed once; a marker in `~/.ctm_plugins/` records it.
-- A failed plugin is logged as a warning and retried on the next container start, so the agent and CLI stay up.
+### Multiple plugins
+
+Separate the plugin images with commas, without spaces (spaces after the commas are tolerated):
+
+```env
+CTM_DEPLOY_PLUGINS=true
+
+# AWS, Azure and OCI plugins, deployed in this order
+CTM_PLUGINS=AWS_Lambda_plugin.Linux,AWS_ECS_plugin.Linux,AWS_Athena_plugin.Linux,Azure_Service_Bus_plugin.Linux,Azure_Devops_plugin.Linux,Azure_Backup_plugin.Linux,OCI_Data_Flow_plugin.Linux,OCI_Functions_plugin.Linux,OCI_VM_plugin.Linux
+```
+
+With `docker run`:
+
+```bash
+docker run -d --name ctm-agent \
+  -e CTM_ENDPOINT="https://<tenant>-aapi.<region>.controlm.com/automation-api" \
+  -e CTM_API_TOKEN="<your-api-token>" \
+  -e CTM_AGENT_TAG="<your-agent-tag>" \
+  -e CTM_AGENT_NAME="<your-agent-name>" \
+  -e CTM_DEPLOY_PLUGINS=true \
+  -e CTM_PLUGINS="AWS_Lambda_plugin.Linux,Azure_Service_Bus_plugin.Linux,OCI_Functions_plugin.Linux" \
+  -it minhion/controlm-cli:22.100.2
+```
+
+Or directly in `docker-compose.yml`, in place of the `${CTM_PLUGINS}` reference:
+
+```yaml
+    environment:
+      CTM_DEPLOY_PLUGINS: "true"
+      CTM_PLUGINS: "AWS_Lambda_plugin.Linux,AWS_ECS_plugin.Linux,AWS_Athena_plugin.Linux,Azure_Service_Bus_plugin.Linux,Azure_Devops_plugin.Linux,Azure_Backup_plugin.Linux,OCI_Data_Flow_plugin.Linux,OCI_Functions_plugin.Linux,OCI_VM_plugin.Linux"
+```
+
+### Finding plugin names
+
+Plugin image names end in `_plugin.Linux`. List the ones available to your tenant from inside the container:
+
+```bash
+docker exec -it ctm-agent bash -c 'ctm provision images Linux | grep _plugin'
+```
+
+Some examples by cloud provider:
+
+| Provider | Plugin images |
+|----------|---------------|
+| AWS | `AWS_Lambda_plugin.Linux`, `AWS_ECS_plugin.Linux`, `AWS_Athena_plugin.Linux`, `AWS_DynamoDB_plugin.Linux`, `AWS_SNS_plugin.Linux` |
+| Azure | `Azure_Service_Bus_plugin.Linux`, `Azure_Devops_plugin.Linux`, `Azure_Backup_plugin.Linux`, `Azure_Resource_Manager_plugin.Linux`, `Azure_AI_Foundry_plugin.Linux` |
+| OCI | `OCI_Data_Flow_plugin.Linux`, `OCI_Functions_plugin.Linux`, `OCI_VM_plugin.Linux`, `OCI_Data_Integration_plugin.Linux`, `OCI_Data_Science_plugin.Linux` |
+| Other | `DataAssurance_plugin.Linux`, `Databases_plugin.Linux`, `Web_Services_REST_plugin.Linux`, `Terraform_plugin.Linux` |
+
+### How deployment behaves
+
+- Each plugin is deployed once; a marker in `~/.ctm_plugins/` records it. On later starts, plugins already deployed are skipped.
+- A failed plugin is logged as a warning and retried on the next container start. The other plugins in the list are still deployed, and the agent and CLI stay up.
 - Plugins are skipped (with a warning) when no agent is installed.
-- To add a plugin later, add it to `CTM_PLUGINS` and run `docker compose up -d`, or run `ctm provision image <plugin>` inside the container.
+- To add a plugin to a running agent, run it inside the container: `docker exec -it ctm-agent ctm provision image <plugin>`. Also add it to `CTM_PLUGINS` so a future fresh container gets it.
+- Changing `CTM_PLUGINS` (or any other variable) and running `docker compose up -d` **recreates** the container, which provisions a new agent (see [Persistent volumes](#-persistent-volumes)).
+- Each plugin is downloaded and installed separately, so a long list adds to first-start time and disk use (see [Requirements](#-requirements)).
 
 ---
 
@@ -245,7 +300,7 @@ Run one container (or one Compose / Portainer stack) per Automation API endpoint
 ## 📋 Requirements
 
 - **CPU / memory:** at least 2 vCPU and 6 GB RAM for the agent (image labels `cpu.required`, `memory.required`).
-- **Disk:** the agent download is about 500 MB and its install needs at least **750 MB free under `/opt/ctm`**; each plugin needs about as much again. Make sure Docker's storage (usually `/var/lib/docker`) has a few GB free.
+- **Disk:** the agent download is about 500 MB and its install needs at least **750 MB free under `/opt/ctm`**; plugin downloads can be as large as the agent's (the Data Assurance plugin is about 480 MB), so allow for each plugin in `CTM_PLUGINS`. Make sure Docker's storage (usually `/var/lib/docker`) has a few GB free.
 - **Network:** outbound HTTPS to your Automation API endpoint and to the BMC artifact repository the Provision service downloads from.
 - **Licensing:** a valid Control-M license.
 
