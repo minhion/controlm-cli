@@ -1,14 +1,26 @@
 services:
   ctm-cli:
-    image: minhion/controlm-cli:22.100.1
+    image: minhion/controlm-cli:22.100.2
     build:
       context: .
+      args:
+        ALMA_VERSION: "${ALMA_VERSION:-9}"
     environment:
       CTM_ENDPOINT: "${CTM_ENDPOINT}"
       CTM_API_TOKEN: "${CTM_API_TOKEN}"
       CTM_ENV_NAME: "${CTM_ENV_NAME:-default}"
+      # Agent provisioning: saas | agent | none (default: saas if CTM_AGENT_TAG set)
+      CTM_AGENT_MODE: "${CTM_AGENT_MODE:-}"
+      CTM_AGENT_IMAGE: "${CTM_AGENT_IMAGE:-Agent_Alma.Linux}"
       CTM_AGENT_TAG: "${CTM_AGENT_TAG:-}"
       CTM_AGENT_NAME: "${CTM_AGENT_NAME:-}"
+      CTM_SERVER: "${CTM_SERVER:-}"
+      CTM_AGENT_PORT: "${CTM_AGENT_PORT:-}"
+      CTM_AGENT_CONFIG_FILE: "${CTM_AGENT_CONFIG_FILE:-}"
+      CTM_AGENT_REPO: "${CTM_AGENT_REPO:-}"
+      # Plugins: set CTM_DEPLOY_PLUGINS=true to install CTM_PLUGINS after the agent
+      CTM_DEPLOY_PLUGINS: "${CTM_DEPLOY_PLUGINS:-false}"
+      CTM_PLUGINS: "${CTM_PLUGINS:-}"
     volumes:
       - ctm_alert:/opt/ctm/ctm/alert
       - ctm_backup:/opt/ctm/ctm/backup
